@@ -112,9 +112,15 @@ async def price(context, *argv) -> None:
         message = await context.send(msg)
         await message.edit(suppress=True)
 
+
 @client.event
 async def on_message(message):
+    if message.author.bot: return
     text = message.content
+    if text.startswith('!price'):
+        context = await client.get_context(message)
+        await price(context, *text.split(' ')[1:])
+        return
     if not "[" in text or "]" not in text:
         return
     p0 = text.find("[")
