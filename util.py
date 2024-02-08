@@ -5,7 +5,7 @@ import time
 import json
 import dotenv
 
-LEAGUE = os.getenv("LEAGUE")
+LEAGUE = "Affliction"
 
 async def fetch_poe_ninja():
 
@@ -48,6 +48,7 @@ async def fetch_poe_ninja():
                 if response.status != 200:
                     print(f'{addr} -> ERROR {response.status}')
                     continue
+                print(f'Response received from {addr}.')
                 text = await response.text()
                 data = json.loads(text)
                 if "lines" not in data: 

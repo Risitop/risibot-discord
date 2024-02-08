@@ -8,7 +8,7 @@ import util
 
 RUN_LOCAL = False
 POE_NINJA_DATA = None
-LEAGUE = os.getenv("LEAGUE")
+LEAGUE = "Affliction"
 
 if not RUN_LOCAL:
     load_dotenv()
@@ -43,6 +43,7 @@ async def listcommands(context) -> None:
     """
     Prints available commands.
     """
+    if RUN_LOCAL: return
     await context.send(
         "> **Risibot: available commands.**\n"
         "> **!price [item name]** *Fetches the poe.ninja price of an item.*"
@@ -60,6 +61,9 @@ async def price(context, *argv) -> None:
     !price mageblood
     """
     if POE_NINJA_DATA is None:
+        if RUN_LOCAL:
+            print('No data available. Please wait a few seconds, or contact @Risitop for more info.')
+            return
         await context.send('No data available. Please wait a few seconds, or contact @Risitop for more info.')
         return
     
@@ -74,10 +78,10 @@ async def price(context, *argv) -> None:
 
     # No relevant item found
     if item is None and len(candidates) == 0:
-        if target_item.lower() == "chaos orb":
-            await context.send(f'> 1 chaos = 1 chaos Poggers')
-            return
-        await context.send(f'> Item inconnu : {target_item}. Assurez-vous d\'utiliser le nom anglais.')
+        if RUN_LOCAL:
+            print(f'Unkown item: {target_item}')
+        else:
+            await context.send(f'> Item inconnu : {target_item}. Assurez-vous d\'utiliser le nom anglais.')
         return
 
     # We print the results
@@ -101,9 +105,43 @@ async def price(context, *argv) -> None:
             msg += f'> 📈 {true_name} price: {price:.1f} chaos.{divine_price_msg} ⚖️ {trade_link}\n'
         else:
             msg += f'> 📈 {true_name} price: 1 chaos for {1/price:.1f} ({price:.1f} chaos). ⚖️ {trade_link}\n'
-    message = await context.send(msg)
-    await message.edit(suppress=True)
+
+    if RUN_LOCAL:
+        print(msg)
+    else:
+        message = await context.send(msg)
+        await message.edit(suppress=True)
+
+@client.event
+async def on_message(message):
+    text = message.content
+    if not "[" in text or "]" not in text:
+        return
+    p0 = text.find("[")
+    p1 = text.find("]")
+    if p0 > p1: return
+    target = text[p0+1:p1]
+    words = target.split(' ')
+    for i, w in enumerate(words):
+        if i > 0 and w not in ['of', 'in', 'the', 'on', 'in', 'a']:
+            words[i] = w.title()
+    target = '_'.join(words)
+
+    if RUN_LOCAL:
+        print(f'https://www.poewiki.net/wiki/{target}')
+    else:
+        context = await client.get_context(message)
+        await context.send(f'> https://www.poewiki.net/wiki/{target}')
+        
+
+async def main():
+    global POE_NINJA_DATA
+    POE_NINJA_DATA = await util.fetch_poe_ninja()
+    await on_message("un [Mirror]")
 
 if __name__ == "__main__":
+
     if not RUN_LOCAL: # Connecting the bot
         client.run(TOKEN)
+    else:
+        asyncio.run(main())
