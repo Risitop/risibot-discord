@@ -4,27 +4,30 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 
+import asyncio
 import time
 import json
 import pickle
-import requests
+import aiohttp
 
-load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
-GUILD = os.getenv('DISCORD_GUILD')
-LEAGUE = os.getenv("LEAGUE")
+RUN_LOCAL = False
+LEAGUE = "Affliction"
+POE_NINJA_DATA = None
+
+if not RUN_LOCAL:
+    load_dotenv()
+    TOKEN = os.getenv('DISCORD_TOKEN')
+    GUILD = os.getenv('DISCORD_GUILD')
 
 client = commands.Bot(
     command_prefix="!",
     intents=discord.Intents.all()
 )
-poe_ninja_data = None
-
 
 async def fetch_poe_ninja():
 
     # Fetches poe.ninja prices, and caches them into a local file
-    global poe_ninja_data
+    global POE_NINJA_DATA
     api_addresses = {
         "Currency":	            f"https://poe.ninja/api/data/currencyoverview?league={LEAGUE}&type=Currency",
         "Fragment":	            f"https://poe.ninja/api/data/currencyoverview?league={LEAGUE}&type=Fragment",
@@ -50,39 +53,44 @@ async def fetch_poe_ninja():
         with open('data/ninja_cache.dat', 'rb') as f:
             data = pickle.load(f)
             if time.time() - data['_fetch_date'] < 900: # 15 min
-                poe_ninja_data = data
+                POE_NINJA_DATA = data
                 print('Data up to date. Nothing to fetch.')
                 return
             
     # Fetching poe.ninja
     container = {"_fetch_date": time.time()}
-    for key, addr in api_addresses.items():
-        print(f'Fetching {key}...')
-        response = requests.get(addr)
-        data = json.loads(response.text)
-        if "lines" not in data: 
-            print('Nothing to fetch.')
-            continue
-        for elem in data["lines"]:
-            name = elem.get('currencyTypeName', elem.get('name', None))
-            if name is None:
-                print(f'Cannot find name: {elem}')
-                continue
-            price = elem.get('chaosValue', None)
-            if price is None:
-                price = elem.get('receive', None)
-                if price is None:
-                    print(f'Cannot find price: {elem}')
+    async with aiohttp.ClientSession() as session:
+        for key, addr in api_addresses.items():
+            print(f'Fetching {key}...')
+            async with session.get(addr) as response:
+                if response.status != 200:
+                    print(f'{addr} -> ERROR {response.status}')
                     continue
-                price = price['value']
-            container[name.lower()] = {"price": price, "true_name": name, "is_equipment": "Unique" in key}
+                text = await response.text()
+                data = json.loads(text)
+                if "lines" not in data: 
+                    print('Nothing to fetch.')
+                    continue
+                for elem in data["lines"]:
+                    name = elem.get('currencyTypeName', elem.get('name', None))
+                    if name is None:
+                        print(f'Cannot find name: {elem}')
+                        continue
+                    price = elem.get('chaosValue', None)
+                    if price is None:
+                        price = elem.get('receive', None)
+                        if price is None:
+                            print(f'Cannot find price: {elem}')
+                            continue
+                        price = price['value']
+                    container[name.lower()] = {"price": price, "true_name": name, "is_equipment": "Unique" in key}
 
     # Updating the cache
     if os.path.isfile('data/ninja_cache.dat'):
         os.remove('data/ninja_cache.dat')
     with open('data/ninja_cache.dat', 'wb') as f:
         pickle.dump(container, f)
-    poe_ninja_data = container
+    POE_NINJA_DATA = container
         
 
 @client.event
@@ -118,11 +126,11 @@ async def price(context, *argv) -> None:
     !price Mirror of Kalandra
     !price mageblood
     """
-    if poe_ninja_data is None:
+    if POE_NINJA_DATA is None:
         await context.send('No data available. Please wait a few seconds, or contact @Risitop for more info.')
         return
     target_item = ' '.join(argv)
-    item = poe_ninja_data.get(target_item.lower(), None)
+    item = POE_NINJA_DATA.get(target_item.lower(), None)
     if item is None:
         if target_item.lower() == "chaos orb":
             await context.send(f'> 1 chaos = 1 chaos Poggers')
@@ -139,7 +147,7 @@ async def price(context, *argv) -> None:
         trade_link = trade_link.replace(" ", "%20")
         price = item["price"]
         if price > .5:
-            divine_price = poe_ninja_data['divine orb']['price']
+            divine_price = POE_NINJA_DATA['divine orb']['price']
             if price < divine_price/2:
                 divine_price_msg = ""
             else:
@@ -148,8 +156,7 @@ async def price(context, *argv) -> None:
         else:
             await context.send(f'> 📈 {true_name} price: 1 chaos for {1/price:.1f} ({price:.1f} chaos). ⚖️ {trade_link}')
 
+if __name__ == "__main__":    
 
-if __name__ == "__main__":
-
-    # Connecting the bot
-    client.run(TOKEN)
+    if not RUN_LOCAL: # Connecting the bot
+        client.run(TOKEN)
