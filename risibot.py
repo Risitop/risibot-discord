@@ -21,6 +21,7 @@ client = commands.Bot(
 poe_ninja_data = None
 
 def fetch_poe_ninja():
+    # Fetches poe.ninja prices, and caches them into a local file
     global poe_ninja_data
     api_addresses = {
         "Currency":	            f"https://poe.ninja/api/data/currencyoverview?league={LEAGUE}&type=Currency",
@@ -79,14 +80,25 @@ def fetch_poe_ninja():
         
 
 @client.event
-async def on_ready():
+async def on_ready() -> None:
+    """
+    Sends an initialization message to the special bot channel.
+    """
     for guild in client.guilds:
         if guild.name == GUILD: break
     channel = client.get_channel(1204886119032823878)
     await channel.send(f'Risibot connected to {guild.name}. id: {guild.id}')
 
 @client.command()
-async def price(context, *argv):
+async def price(context, *argv) -> None:
+    """
+    Prints the poe.ninja price of the item passed in parameter (case-insensitive).
+
+    Example:
+    --------
+    !price Mirror of Kalandra
+    !price mageblood
+    """
     target_item = ' '.join(argv)
     price = poe_ninja_data.get(target_item.lower(), None)
     if price is None:
