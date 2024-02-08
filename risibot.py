@@ -29,18 +29,13 @@ async def fetch_poe_ninja():
         "Currency":	            f"https://poe.ninja/api/data/currencyoverview?league={LEAGUE}&type=Currency",
         "Fragment":	            f"https://poe.ninja/api/data/currencyoverview?league={LEAGUE}&type=Fragment",
         "Oils":	                f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=Oil",
-        "Incubators":	        f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=Incubator",
         "Scarabs":	            f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=Scarab",
         "Fossils":	            f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=Fossil",
         "Resonators":	        f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=Resonator",
         "Essence":	            f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=Essence",
         "Divination Cards":	    f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=DivinationCard",
-        "Prophecies":	        f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=Prophecy",
         "Skill Gems":	        f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=SkillGem",
-        "Base Types":	        f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=BaseType",
-        "Helmet Enchants":	    f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=HelmetEnchant",
         "Unique Maps":	        f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=UniqueMap",
-        "Maps":	                f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=Map",
         "Unique Jewels":	    f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=UniqueJewel",
         "Unique Flasks":	    f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=UniqueFlask",
         "Unique Weapons":	    f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=UniqueWeapon",
@@ -80,7 +75,7 @@ async def fetch_poe_ninja():
                     print(f'Cannot find price: {elem}')
                     continue
                 price = price['value']
-            container[name.lower()] = price
+            container[name.lower()] = {"price": price, "true_name": name, "is_equipment": "Unique" in key}
 
     # Updating the cache
     if os.path.isfile('data/ninja_cache.dat'):
@@ -98,7 +93,7 @@ async def on_ready() -> None:
     for guild in client.guilds:
         if guild.name == GUILD: break
     channel = client.get_channel(1204886119032823878)
-    await channel.send(f'Risibot connected to {guild.name}. id: {guild.id}')
+    await channel.send(f'Risibot connected to {guild.name}. id: {guild.id}.')
     await fetch_poe_ninja()
 
 
@@ -127,22 +122,31 @@ async def price(context, *argv) -> None:
         await context.send('No data available. Please wait a few seconds, or contact @Risitop for more info.')
         return
     target_item = ' '.join(argv)
-    price = poe_ninja_data.get(target_item.lower(), None)
-    if price is None:
+    item = poe_ninja_data.get(target_item.lower(), None)
+    if item is None:
         if target_item.lower() == "chaos orb":
             await context.send(f'> 1 chaos = 1 chaos Poggers')
             return
         await context.send(f'> Item inconnu : {target_item}. Assurez-vous d\'utiliser le nom anglais.')
     else:
+        true_name = item["true_name"]
+        if not item["is_equipment"]:
+            filters = f'%22type%22:%22{true_name}%22'
+        else:
+            filters = '%22filters%22:{%22type_filters%22:{%22filters%22:{}}},%22name%22:%22' + true_name + '%22'
+        query = '{%22query%22:{' + filters + '}}'
+        trade_link = f'[Buy/Sell](https://www.pathofexile.com/trade/search/{LEAGUE}?q={query})'
+        trade_link = trade_link.replace(" ", "%20")
+        price = item["price"]
         if price > .5:
-            divine_price = poe_ninja_data['divine orb']
+            divine_price = poe_ninja_data['divine orb']['price']
             if price < divine_price/2:
                 divine_price_msg = ""
             else:
                 divine_price_msg = f" ({(price/divine_price):.1f} divine)"
-            await context.send(f'> {target_item} price: {price:.1f} chaos.{divine_price_msg}')
+            await context.send(f'> 📈 {true_name} price: {price:.1f} chaos.{divine_price_msg} ⚖️ {trade_link}')
         else:
-            await context.send(f'> {target_item} price: 1 chaos for {1/price:.1f} ({price:.1f} chaos).')
+            await context.send(f'> 📈 {true_name} price: 1 chaos for {1/price:.1f} ({price:.1f} chaos). ⚖️ {trade_link}')
 
 
 if __name__ == "__main__":
