@@ -95,7 +95,15 @@ async def price(context, *argv):
             return
         await context.send(f'> Item inconnu : {target_item}. Assurez-vous d\'utiliser le nom anglais.')
     else:
-        await context.send(f'> {target_item} price: {price} chaos.')
+        if price > .5:
+            divine_price = poe_ninja_data['divine orb']
+            if price < divine_price/2:
+                divine_price_msg = ""
+            else:
+                divine_price_msg = f" ({(price/divine_price):.1f} divine)"
+            await context.send(f'> {target_item} price: {price:.1f} chaos.{divine_price_msg}')
+        else:
+            await context.send(f'> {target_item} price: 1 chaos for {1/price:.1f} ({price:.1f} chaos).')
         
 
 if __name__ == "__main__":
