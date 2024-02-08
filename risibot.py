@@ -62,7 +62,7 @@ async def price(context, *argv) -> None:
     target_item = ' '.join(argv)
     item = POE_NINJA_DATA.get(target_item.lower(), None)
     if item is None: # If no exact match, take all candidates
-        candidates = [(k, v) for (k, v) in POE_NINJA_DATA.items() if target_item.lower() in k]
+        candidates = [(k, v) for (k, v) in POE_NINJA_DATA.items() if util.fuzzy(target_item.lower(), k)]
     else:
         candidates = [(target_item, item)]
     candidates = sorted(candidates, key=lambda t: t[1]['price'])[-5:]
@@ -97,7 +97,6 @@ async def price(context, *argv) -> None:
             msg += f'> 📈 {true_name} price: 1 chaos for {1/price:.1f} ({price:.1f} chaos). ⚖️ {trade_link}\n'
     await context.send(msg)
 
-if __name__ == "__main__":    
-
+if __name__ == "__main__":
     if not RUN_LOCAL: # Connecting the bot
         client.run(TOKEN)

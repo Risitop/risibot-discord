@@ -74,3 +74,11 @@ async def fetch_poe_ninja():
         pickle.dump(container, f)
     del container['_fetch_date']
     return container
+
+
+def fuzzy(query, target):
+    iq, it = 0, 0
+    while iq < len(query) and it < len(target):
+        iq += query[iq] == target[it]
+        it += 1
+    return iq == len(query)
