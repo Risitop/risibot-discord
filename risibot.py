@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 
+import asyncio
 import discord
 from discord.ext import commands
 import util
@@ -32,7 +33,9 @@ async def on_ready() -> None:
         if guild.name == GUILD: break
     channel = client.get_channel(1204886119032823878)
     await channel.send(f'Risibot connected to {guild.name}. id: {guild.id}.')
-    POE_NINJA_DATA = await util.fetch_poe_ninja()
+    while True:
+        POE_NINJA_DATA = await util.fetch_poe_ninja()
+        await asyncio.sleep(900)
 
 
 @client.command()
