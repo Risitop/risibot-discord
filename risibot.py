@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 
-from datetime import date
+import time
 import json
 import pickle
 import requests
@@ -20,7 +20,9 @@ client = commands.Bot(
 )
 poe_ninja_data = None
 
-def fetch_poe_ninja():
+
+async def fetch_poe_ninja():
+
     # Fetches poe.ninja prices, and caches them into a local file
     global poe_ninja_data
     api_addresses = {
@@ -46,15 +48,19 @@ def fetch_poe_ninja():
         "Unique Accessories":	f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=UniqueAccessory",
         "Beasts":	            f"https://poe.ninja/api/data/itemoverview?league={LEAGUE}&type=Beast"
     }
+
+    # Checking if cache is up to date
     if not os.path.isdir('data'): os.mkdir('data')
     if os.path.isfile('data/ninja_cache.dat'):
         with open('data/ninja_cache.dat', 'rb') as f:
             data = pickle.load(f)
-            if data['_fetch_date'] == date.today():
+            if time.time() - data['_fetch_date'] < 900: # 15 min
                 poe_ninja_data = data
                 print('Data up to date. Nothing to fetch.')
                 return
-    poe_ninja_data = {"_fetch_date": date.today()}
+            
+    # Fetching poe.ninja
+    container = {"_fetch_date": time.time()}
     for key, addr in api_addresses.items():
         print(f'Fetching {key}...')
         response = requests.get(addr)
@@ -74,9 +80,14 @@ def fetch_poe_ninja():
                     print(f'Cannot find price: {elem}')
                     continue
                 price = price['value']
-            poe_ninja_data[name.lower()] = price
+            container[name.lower()] = price
+
+    # Updating the cache
+    if os.path.isfile('data/ninja_cache.dat'):
+        os.remove('data/ninja_cache.dat')
     with open('data/ninja_cache.dat', 'wb') as f:
-        pickle.dump(poe_ninja_data, f)
+        pickle.dump(container, f)
+    poe_ninja_data = container
         
 
 @client.event
@@ -88,6 +99,19 @@ async def on_ready() -> None:
         if guild.name == GUILD: break
     channel = client.get_channel(1204886119032823878)
     await channel.send(f'Risibot connected to {guild.name}. id: {guild.id}')
+    await fetch_poe_ninja()
+
+
+@client.command()
+async def listcommands(context) -> None:
+    """
+    Prints available commands.
+    """
+    await context.send(
+        "> **Risibot: available commands.**\n"
+        "> **!price [item name]** *Fetches the poe.ninja price of an item.*"
+    )
+
 
 @client.command()
 async def price(context, *argv) -> None:
@@ -99,6 +123,9 @@ async def price(context, *argv) -> None:
     !price Mirror of Kalandra
     !price mageblood
     """
+    if poe_ninja_data is None:
+        await context.send('No data available. Please wait a few seconds, or contact @Risitop for more info.')
+        return
     target_item = ' '.join(argv)
     price = poe_ninja_data.get(target_item.lower(), None)
     if price is None:
@@ -116,8 +143,9 @@ async def price(context, *argv) -> None:
             await context.send(f'> {target_item} price: {price:.1f} chaos.{divine_price_msg}')
         else:
             await context.send(f'> {target_item} price: 1 chaos for {1/price:.1f} ({price:.1f} chaos).')
-        
+
 
 if __name__ == "__main__":
-    fetch_poe_ninja()
+
+    # Connecting the bot
     client.run(TOKEN)
