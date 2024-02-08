@@ -14,9 +14,11 @@ if not RUN_LOCAL:
     TOKEN = os.getenv('DISCORD_TOKEN')
     GUILD = os.getenv('DISCORD_GUILD')
 
+intents = discord.Intents.all()
+intents.message_content = True
 client = commands.Bot(
     command_prefix="!",
-    intents=discord.Intents.all()
+    intents=intents
 )
         
 
@@ -73,6 +75,7 @@ async def price(context, *argv) -> None:
             await context.send(f'> 1 chaos = 1 chaos Poggers')
             return
         await context.send(f'> Item inconnu : {target_item}. Assurez-vous d\'utiliser le nom anglais.')
+        return
 
     # We print the results
     msg = ""
@@ -95,7 +98,8 @@ async def price(context, *argv) -> None:
             msg += f'> 📈 {true_name} price: {price:.1f} chaos.{divine_price_msg} ⚖️ {trade_link}\n'
         else:
             msg += f'> 📈 {true_name} price: 1 chaos for {1/price:.1f} ({price:.1f} chaos). ⚖️ {trade_link}\n'
-    await context.send(msg)
+    message = await context.send(msg)
+    await message.edit(suppress=True)
 
 if __name__ == "__main__":
     if not RUN_LOCAL: # Connecting the bot
