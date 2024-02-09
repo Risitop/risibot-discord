@@ -16,8 +16,8 @@ def fuzzy_match(query: str, target: str) -> bool:
 
 def extract_pattern_between(query: str, sep_l: str, sep_r: str) -> List[Tuple[int, int]]:
     # Searches for a pattern between two separators, can fetch multiple occurences.
-    # My name is [[Risitop]] and I love [[programming]] [[]].
-    #              ^      ^               ^          ^    ^
+    # "My name is [[Risitop]] and I love [[programming]] [[]].", "[[", "]]"
+    #               ^      ^               ^          ^    ^
     # -> ["Risitop", "programming", ""]
     idx, nl, nr = 0, len(sep_l), len(sep_r)
     output = []
