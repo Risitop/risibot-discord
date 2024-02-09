@@ -16,12 +16,17 @@ NINJA_DATA_PATH = os.path.join(DATA_FOLDER_PATH, 'ninja_cache.dat')
 FETCH_KEY = '_fetch_date'
 
 def get_divine_price() -> float:
+    # Returns the chaos price of one divine orb
     divprice = get_poe_ninja_data('divine orb')
     if not divprice: return -1.0
     return divprice[0][1]['price']
 
 def get_poe_ninja_data(query: str, max_items: int = 5) -> list:
     # Returns a list of poe.ninja data elements corresponding to the query
+    # Format: [(name1, item1), (name2, item2), ...]
+    # > name: str
+    # > item: {'price': float, 'true_name': str, 'is_equipment': bool}
+    # Returns None if no data is loaded
 
     if POE_NINJA_DATA is None: return None
     
@@ -34,9 +39,10 @@ def get_poe_ninja_data(query: str, max_items: int = 5) -> list:
 
     return list(sorted(candidates, key=lambda t: t[1]['price'])[-max_items:])
 
-async def fetch_poe_ninja() -> None:
+async def fetch_poe_ninja() -> bool:
     # Loads data from poe.ninja (at most once every 15min) and caches it locally.
     # HTTP requests are performed asynchronously
+    # Returns if data has been fetched
 
     global POE_NINJA_DATA
 
@@ -69,7 +75,7 @@ async def fetch_poe_ninja() -> None:
                 print('Data is up to date. Nothing to fetch.')
                 del data[FETCH_KEY]
                 POE_NINJA_DATA = data
-                return
+                return False
 
     # Fetching poe.ninja
     container = {FETCH_KEY: time.time()}
@@ -107,3 +113,4 @@ async def fetch_poe_ninja() -> None:
         pickle.dump(container, f)
     del container[FETCH_KEY]
     POE_NINJA_DATA = container
+    return True
