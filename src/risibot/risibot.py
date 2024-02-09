@@ -6,6 +6,7 @@ import discord
 from discord.ext import commands
 
 import risibot.data_manager as dm
+import risibot.util as util
 
 load_dotenv()
 LEAGUE = os.getenv('LEAGUE')
@@ -105,25 +106,19 @@ async def price(context: commands.Context, *argv) -> None:
         await message.edit(suppress=True)
 
 
-async def check_if_poewiki(message: discord.Message) -> None:
+async def search_poewiki(message: discord.Message) -> None:
     # Search for [[s]] pattern: [[s]] -> s
-    text, output = message.content, ""
-    idx = 0
-    while idx + 2 < len(text):
-        if text[idx:idx+2] == '[[':
-            idx = idx + 2
-            idx2 = idx
-            while idx2 + 2 < len(text) and text[idx2:idx2+2] != ']]': idx2 += 1
-            target = text[idx:idx2]
-            idx = idx2 + 1
-            if len(target) == 0: continue
-            words = target.split(' ')
-            for i, w in enumerate(words):
-                if i == 0 or w not in ['of', 'in', 'the', 'on', 'in', 'a']:
-                    words[i] = w.title()
-            target = '_'.join(words)
-            output += f'https://www.poewiki.net/wiki/{target}\n'
-        idx += 1
+    text = message.content
+    occurences = util.extract_pattern_between(text, '[[', ']]')
+    output = ""
+    for target in occurences:
+        if not len(target): continue
+        words = target.split(' ')
+        for i, w in enumerate(words):
+            if i == 0 or w not in ['of', 'in', 'the', 'on', 'in', 'a']:
+                words[i] = w.title()
+        target = '_'.join(words)
+        output += f'https://www.poewiki.net/wiki/{target}\n'
 
     if RUN_LOCAL:
         print(output)
@@ -134,5 +129,6 @@ async def check_if_poewiki(message: discord.Message) -> None:
 
 @client.event
 async def on_message(message: discord.Message):
-    await check_if_poewiki(message)
+    if message.author.bot: return
+    await search_poewiki(message)
     await client.process_commands(message)
