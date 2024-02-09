@@ -4,14 +4,14 @@ from dotenv import load_dotenv
 import asyncio
 import discord
 from discord.ext import commands
+
 import util
+import data_manager as dm
 
-RUN_LOCAL = False
-POE_NINJA_DATA = None
-LEAGUE = "Affliction"
-
+load_dotenv()
+LEAGUE = os.getenv('LEAGUE')
+RUN_LOCAL = bool(os.getenv('LOCAL'))
 if not RUN_LOCAL:
-    load_dotenv()
     TOKEN = os.getenv('DISCORD_TOKEN')
     GUILD = os.getenv('DISCORD_GUILD')
 
@@ -21,37 +21,36 @@ client = commands.Bot(
     command_prefix="!",
     intents=intents
 )
-        
 
 @client.event
 async def on_ready() -> None:
     """
     Sends an initialization message to the special bot channel.
     """
-    global POE_NINJA_DATA
     for guild in client.guilds:
         if guild.name == GUILD: break
     channel = client.get_channel(1204886119032823878)
     await channel.send(f'Risibot connected to {guild.name}. id: {guild.id}.')
     while True:
-        POE_NINJA_DATA = await util.fetch_poe_ninja()
-        await asyncio.sleep(900)
+        await dm.fetch_poe_ninja()
+        await asyncio.sleep(900) # 15min waiting time
 
 
 @client.command()
-async def listcommands(context) -> None:
+async def listcommands(context: commands.Context) -> None:
     """
     Prints available commands.
     """
     if RUN_LOCAL: return
     await context.send(
         "> **Risibot: available commands.**\n"
-        "> **!price [item name]** *Fetches the poe.ninja price of an item.*"
+        "> **!price [item name]** *Fetches the poe.ninja price of an item.*\n"
+        "> **[item]** *Detects any [item] in messages and links the poewiki page.*\n"
     )
 
 
 @client.command()
-async def price(context, *argv) -> None:
+async def price(context: commands.Context, *argv) -> None:
     """
     Prints the poe.ninja price of the item passed in parameter (case-insensitive).
 
@@ -60,28 +59,22 @@ async def price(context, *argv) -> None:
     !price Mirror of Kalandra
     !price mageblood
     """
-    if POE_NINJA_DATA is None:
+    
+    target_item = ' '.join(argv)
+    candidates = dm.get_poe_ninja_data(target_item)
+
+    if candidates is None: # No data loaded
         if RUN_LOCAL:
             print('No data available. Please wait a few seconds, or contact @Risitop for more info.')
-            return
-        await context.send('No data available. Please wait a few seconds, or contact @Risitop for more info.')
-        return
-    
-    # Gathering at most 5 query candidates
-    target_item = ' '.join(argv)
-    item = POE_NINJA_DATA.get(target_item.lower(), None)
-    if item is None: # If no exact match, take all candidates
-        candidates = [(k, v) for (k, v) in POE_NINJA_DATA.items() if util.fuzzy(target_item.lower(), k)]
-    else:
-        candidates = [(target_item, item)]
-    candidates = sorted(candidates, key=lambda t: t[1]['price'])[-5:]
-
-    # No relevant item found
-    if item is None and len(candidates) == 0:
-        if RUN_LOCAL:
-            print(f'Unkown item: {target_item}')
         else:
-            await context.send(f'> Item inconnu : {target_item}. Assurez-vous d\'utiliser le nom anglais.')
+            await context.send('No data available. Please wait a few seconds, or contact @Risitop for more info.')
+        return
+
+    if len(candidates) == 0: # No relevant item found
+        if RUN_LOCAL:
+            print(f'> Aucun item trouvé : {target_item}. Assurez-vous d\'utiliser le nom anglais.')
+        else:
+            await context.send(f'> Aucun item trouvé : {target_item}. Assurez-vous d\'utiliser le nom anglais.')
         return
 
     # We print the results
@@ -97,7 +90,7 @@ async def price(context, *argv) -> None:
         trade_link = trade_link.replace(" ", "%20")
         price = item["price"]
         if price > .5:
-            divine_price = POE_NINJA_DATA['divine orb']['price']
+            divine_price = dm.get_divine_price()
             if price < divine_price/2:
                 divine_price_msg = ""
             else:
@@ -113,37 +106,42 @@ async def price(context, *argv) -> None:
         await message.edit(suppress=True)
 
 
-@client.event
-async def on_message(message):
-    if message.author.bot: return
-    text = message.content
-    if text.startswith('!price'):
-        context = await client.get_context(message)
-        await price(context, *text.split(' ')[1:])
-        return
-    if not "[" in text or "]" not in text:
-        return
-    p0 = text.find("[")
-    p1 = text.find("]")
-    if p0 > p1: return
-    target = text[p0+1:p1]
-    words = target.split(' ')
-    for i, w in enumerate(words):
-        if i > 0 and w not in ['of', 'in', 'the', 'on', 'in', 'a']:
-            words[i] = w.title()
-    target = '_'.join(words)
+async def check_if_poewiki(message: discord.Message) -> None:
+    # Search for [[s]] pattern: [[s]] -> s
+    text, output = message.content, ""
+    idx = 0
+    while idx + 2 < len(text):
+        if text[idx:idx+2] == '[[':
+            idx = idx + 2
+            idx2 = idx
+            while idx2 + 2 < len(text) and text[idx2:idx2+2] != ']]': idx2 += 1
+            target = text[idx:idx2]
+            idx = idx2 + 1
+            if len(target) == 0: continue
+            words = target.split(' ')
+            for i, w in enumerate(words):
+                if i == 0 or w not in ['of', 'in', 'the', 'on', 'in', 'a']:
+                    words[i] = w.title()
+            target = '_'.join(words)
+            output += f'https://www.poewiki.net/wiki/{target}\n'
+        idx += 1
 
     if RUN_LOCAL:
-        print(f'https://www.poewiki.net/wiki/{target}')
+        print(output)
     else:
         context = await client.get_context(message)
-        await context.send(f'> https://www.poewiki.net/wiki/{target}')
+        await context.send(output)
+
+
+@client.event
+async def on_message(message: discord.Message):
+    await check_if_poewiki(message)
+    await client.process_commands(message)
         
 
 async def main():
-    global POE_NINJA_DATA
-    POE_NINJA_DATA = await util.fetch_poe_ninja()
-    await on_message("un [Mirror]")
+    await dm.fetch_poe_ninja()
+    await price(None, "chs", 'rb')
 
 if __name__ == "__main__":
 
