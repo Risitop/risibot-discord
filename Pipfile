@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 risibot-discord = {file = ".", editable = true}
+pytest = "*"
 
 [dev-packages]
 
