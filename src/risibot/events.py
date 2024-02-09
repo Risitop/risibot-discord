@@ -1,13 +1,11 @@
 import asyncio
-
 import discord
-from discord.ext import commands as discord_commands
 
 import risibot.constants as constants
-import risibot.commands as risibot_commands
 import risibot.data_manager as dm
 
-from risibot.commands import client
+from risibot.commands import search_poewiki
+from risibot.risibot import client
 
 @client.event
 async def on_ready() -> None:
@@ -29,6 +27,5 @@ async def on_ready() -> None:
 @client.event
 async def on_message(message: discord.Message):
     if message.author.bot: return
-    await risibot_commands.search_poewiki(message)
-    await risibot_commands.check_links(message)
+    await search_poewiki(message)
     await client.process_commands(message)

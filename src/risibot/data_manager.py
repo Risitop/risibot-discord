@@ -9,7 +9,8 @@ import risibot.util as util
 
 POE_NINJA_DATA = None
 LEAGUE = constants.LEAGUE
-DATA_FOLDER_PATH = os.sep.join(__file__.split(os.sep)[:-3] + ['data'])
+ROOT_FOLDER_PATH = os.sep.join(__file__.split(os.sep)[:-3])
+DATA_FOLDER_PATH = os.path.join(ROOT_FOLDER_PATH, 'data')
 NINJA_DATA_PATH = os.path.join(DATA_FOLDER_PATH, 'ninja_cache.dat')
 FETCH_KEY = '_fetch_date'
 
@@ -112,3 +113,7 @@ async def fetch_poe_ninja() -> bool:
     del container[FETCH_KEY]
     POE_NINJA_DATA = container
     return True
+
+def get_whitelist_links() -> list:
+    with open(os.path.join(ROOT_FOLDER_PATH, 'whitelist.txt'), 'r') as f_in:
+        return [l.strip('\n ') for l in f_in]
