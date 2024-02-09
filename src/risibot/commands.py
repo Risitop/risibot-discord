@@ -50,14 +50,17 @@ async def listcommands(context: commands.Context) -> None:
     channel = await context.message.author.create_dm()
     await channel.send(
         "> **Risibot: available commands.**\n"
-        "> **!price [item name]** *Fetches the poe.ninja price of an item.*\n"
-        "> **[item]** *Detects any [item] in messages and links the poewiki page.*\n"
+        "> **!price {item name}** *Fetches the poe.ninja price of an item.*\n"
+        "> **[[item]]** *Detects any [[item]] in messages and links the poewiki page.*\n"
     )
     resp_roles = [discord.utils.get(context.guild.roles, name=r) for r in ("Administrateur", "Modérateur")]
     if any(r in resp_roles for r in context.message.author.roles):
         await channel.send(
             "> **Risibot: Mod-only commands.**\n"
-            "> **!clear [n]** *Removes the $n last messages in the channel.*\n"
+            "> **!clear {n}** *Removes the $n last messages in the channel.*\n"
+            "> **!whitelist** *Prints all whitelisted links.*"
+            "> **!whitelist_add {link}** *Adds a link to the whitelist (e.g. youtube.com).*"
+            "> **!whitelist_remove {link}** *Removes a link from the whitelist (e.g. youtube.com).*"
         )
         
 
@@ -166,6 +169,7 @@ async def whitelist_remove(context: commands.Context, link: str) -> None:
             print(f'❌ Link {link} not found.')
         else:
             await context.send(f'❌ Link {link} not found.')
+
 
 @client.command()
 @commands.has_any_role('Modérateur', 'Administrateur')
