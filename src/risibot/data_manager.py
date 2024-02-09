@@ -12,6 +12,7 @@ LEAGUE = constants.LEAGUE
 ROOT_FOLDER_PATH = os.sep.join(__file__.split(os.sep)[:-3])
 DATA_FOLDER_PATH = os.path.join(ROOT_FOLDER_PATH, 'data')
 NINJA_DATA_PATH = os.path.join(DATA_FOLDER_PATH, 'ninja_cache.dat')
+WHITELIST_DATA_PATH = os.path.join(ROOT_FOLDER_PATH, 'whitelist.txt')
 FETCH_KEY = '_fetch_date'
 
 def get_divine_price() -> float:
@@ -114,6 +115,24 @@ async def fetch_poe_ninja() -> bool:
     POE_NINJA_DATA = container
     return True
 
+
 def get_whitelist_links() -> list:
-    with open(os.path.join(ROOT_FOLDER_PATH, 'whitelist.txt'), 'r') as f_in:
+    # Returns a list containing all links from whitelist.txt
+    with open(WHITELIST_DATA_PATH, 'r') as f_in:
         return [l.strip('\n ') for l in f_in]
+    
+
+def add_whitelist_link(link: str) -> None:
+    # Adds a link to whitelist.txt
+        with open(WHITELIST_DATA_PATH, 'a') as f_out:
+            f_out.write(f'{link}\n')
+
+
+def remove_whitelist_link(link: str) -> bool:
+    # Removes a link to whitelist.txt
+    all_links = sorted(get_whitelist_links())
+    if link not in all_links: return False
+    os.remove(WHITELIST_DATA_PATH)
+    for l in all_links: 
+        if link != l: add_whitelist_link(l)
+    return True

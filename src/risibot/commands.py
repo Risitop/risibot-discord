@@ -141,3 +141,37 @@ async def search_poewiki(message: discord.Message) -> None:
     else:
         context = await client.get_context(message)
         await context.send(output)
+
+
+@client.command()
+@commands.has_any_role('Modérateur', 'Administrateur')
+async def whitelist_add(context: commands.Context, link: str) -> None:
+    dm.add_whitelist_link(link)
+    if constants.LOCAL:
+        print(f'✅ Link {link} successfully added to the whitelist.')
+    else:
+        await context.send(f'✅ Link {link} successfully added to the whitelist.')
+
+
+@client.command()
+@commands.has_any_role('Modérateur', 'Administrateur')
+async def whitelist_remove(context: commands.Context, link: str) -> None:
+    if dm.remove_whitelist_link(link):
+        if constants.LOCAL:
+            print(f'✅ Link {link} successfully added to the whitelist.')
+        else:
+            await context.send(f'✅ Link {link} successfully added to the whitelist.')
+    else:
+        if constants.LOCAL:
+            print(f'❌ Link {link} not found.')
+        else:
+            await context.send(f'❌ Link {link} not found.')
+
+@client.command()
+@commands.has_any_role('Modérateur', 'Administrateur')
+async def whitelist(context: commands.Context) -> None:
+    msg = "\n".join(f'> {link}' for link in sorted(dm.get_whitelist_links()))
+    if constants.LOCAL:
+        print(msg)
+    else:
+        await context.send(msg)
