@@ -10,6 +10,9 @@ async def main():
 if __name__ == "__main__":
 
     if not constants.LOCAL: # Connecting the bot
-        bot.client.run(private.DISCORD_TOKEN)
+        if constants.TEST:
+            bot.client.run(private.DISCORD_TOKEN_TEST)
+        else:
+            bot.client.run(private.DISCORD_TOKEN)
     else:
         asyncio.run(main())

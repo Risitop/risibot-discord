@@ -9,8 +9,6 @@ import risibot.util as util
 
 LEAGUE = constants.LEAGUE
 RUN_LOCAL = constants.LOCAL
-if not RUN_LOCAL:
-    GUILD = private.DISCORD_GUILD
 
 intents = discord.Intents.all()
 intents.message_content = True
@@ -24,9 +22,12 @@ async def on_ready() -> None:
     """
     Sends an initialization message to the special bot channel.
     """
-    for guild in client.guilds:
-        if guild.name == GUILD: break
-    channel = client.get_channel(1204886119032823878)
+    if constants.TEST:
+        channel = client.get_channel(1205505802912137219)
+        guild = client.get_guild(1205505801939197952)
+    else:
+        channel = client.get_channel(1204886119032823878)
+        guild = client.get_guild(1103589587751817299)    
     await channel.send(f'Risibot connected to {guild.name}. id: {guild.id}.')
     while True:
         await dm.fetch_poe_ninja()
@@ -101,6 +102,15 @@ async def price(context: commands.Context, *argv) -> None:
     else:
         message = await context.send(msg)
         await message.edit(suppress=True)
+
+
+@client.command()
+@commands.has_any_role('Modérateur', 'Administrateur')
+async def clear(context: commands.Context, n_remove) -> None:
+    # Syntax: !clear {n}
+    # Removes the $n last messages in the calling channel
+    n_remove = int(n_remove) + 1
+    await context.channel.purge(limit=n_remove)
 
 
 async def search_poewiki(message: discord.Message) -> None:
