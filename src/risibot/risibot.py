@@ -5,7 +5,7 @@ import asyncio
 import discord
 from discord.ext import commands
 
-import data_manager as dm
+import risibot.data_manager as dm
 
 load_dotenv()
 LEAGUE = os.getenv('LEAGUE')
@@ -136,15 +136,3 @@ async def check_if_poewiki(message: discord.Message) -> None:
 async def on_message(message: discord.Message):
     await check_if_poewiki(message)
     await client.process_commands(message)
-        
-
-async def main():
-    await dm.fetch_poe_ninja()
-    await price(None, "chs", 'rb')
-
-if __name__ == "__main__":
-
-    if not RUN_LOCAL: # Connecting the bot
-        client.run(TOKEN)
-    else:
-        asyncio.run(main())
