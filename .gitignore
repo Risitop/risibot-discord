@@ -1,4 +1,4 @@
-.env
+src/risibot/private.py
 Pipfile.lock
 data/ninja_cache.dat
 src/risibot_discord.egg-info/dependency_links.txt

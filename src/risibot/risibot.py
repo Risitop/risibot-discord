@@ -1,19 +1,16 @@
-import os
-from dotenv import load_dotenv
-
 import asyncio
 import discord
 from discord.ext import commands
 
+import risibot.constants as constants
 import risibot.data_manager as dm
+import risibot.private as private
 import risibot.util as util
 
-load_dotenv()
-LEAGUE = os.getenv('LEAGUE')
-RUN_LOCAL = bool(os.getenv('LOCAL'))
+LEAGUE = constants.LEAGUE
+RUN_LOCAL = constants.LOCAL
 if not RUN_LOCAL:
-    TOKEN = os.getenv('DISCORD_TOKEN')
-    GUILD = os.getenv('DISCORD_GUILD')
+    GUILD = private.DISCORD_GUILD
 
 intents = discord.Intents.all()
 intents.message_content = True
@@ -110,6 +107,7 @@ async def search_poewiki(message: discord.Message) -> None:
     # Search for [[s]] pattern: [[s]] -> s
     text = message.content
     occurences = util.extract_pattern_between(text, '[[', ']]')
+    
     output = ""
     for target in occurences:
         if not len(target): continue
@@ -119,6 +117,8 @@ async def search_poewiki(message: discord.Message) -> None:
                 words[i] = w.title()
         target = '_'.join(words)
         output += f'https://www.poewiki.net/wiki/{target}\n'
+
+    if not len(output): return
 
     if RUN_LOCAL:
         print(output)

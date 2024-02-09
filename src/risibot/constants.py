@@ -1,0 +1,2 @@
+LOCAL = False
+LEAGUE = "Affliction"

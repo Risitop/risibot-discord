@@ -4,13 +4,11 @@ import pickle
 import time
 import json
 
-from dotenv import load_dotenv
-
+import risibot.constants as constants
 import risibot.util as util
 
-load_dotenv()
 POE_NINJA_DATA = None
-LEAGUE = os.getenv('LEAGUE')
+LEAGUE = constants.LEAGUE
 DATA_FOLDER_PATH = os.sep.join(__file__.split(os.sep)[:-3] + ['data'])
 NINJA_DATA_PATH = os.path.join(DATA_FOLDER_PATH, 'ninja_cache.dat')
 FETCH_KEY = '_fetch_date'
