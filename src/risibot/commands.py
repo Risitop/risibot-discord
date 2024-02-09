@@ -161,9 +161,9 @@ async def whitelist_add(context: commands.Context, link: str) -> None:
 async def whitelist_remove(context: commands.Context, link: str) -> None:
     if dm.remove_whitelist_link(link):
         if constants.LOCAL:
-            print(f'✅ Link {link} successfully added to the whitelist.')
+            print(f'✅ Link {link} successfully removed from the whitelist.')
         else:
-            await context.send(f'✅ Link {link} successfully added to the whitelist.')
+            await context.send(f'✅ Link {link} successfully removed from the whitelist.')
     else:
         if constants.LOCAL:
             print(f'❌ Link {link} not found.')
