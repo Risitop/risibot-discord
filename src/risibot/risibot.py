@@ -101,6 +101,7 @@ async def price(context: commands.Context, *argv) -> None:
         print(msg)
     else:
         message = await context.send(msg)
+        await asyncio.sleep(0.5)
         await message.edit(suppress=True)
 
 
