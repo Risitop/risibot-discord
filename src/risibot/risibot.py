@@ -40,12 +40,19 @@ async def listcommands(context: commands.Context) -> None:
     Prints available commands.
     """
     if RUN_LOCAL: return
-    await context.send(
+    channel = await context.message.author.create_dm()
+    await channel.send(
         "> **Risibot: available commands.**\n"
         "> **!price [item name]** *Fetches the poe.ninja price of an item.*\n"
         "> **[item]** *Detects any [item] in messages and links the poewiki page.*\n"
     )
-
+    resp_roles = [discord.utils.get(context.guild.roles, name=r) for r in ("Administrateur", "Modérateur")]
+    if any(r in resp_roles for r in context.message.author.roles):
+        await channel.send(
+            "> **Risibot: Mod-only commands.**\n"
+            "> **!clear [n]** *Removes the $n last messages in the channel.*\n"
+        )
+        
 
 @client.command()
 async def price(context: commands.Context, *argv) -> None:
@@ -63,16 +70,16 @@ async def price(context: commands.Context, *argv) -> None:
 
     if candidates is None: # No data loaded
         if RUN_LOCAL:
-            print('No data available. Please wait a few seconds, or contact @Risitop for more info.')
+            print('No data available. Please wait a few seconds, or contact @Risitop for help.')
         else:
-            await context.send('No data available. Please wait a few seconds, or contact @Risitop for more info.')
+            await context.send('No data available. Please wait a few seconds, or contact @Risitop for help.')
         return
 
     if len(candidates) == 0: # No relevant item found
         if RUN_LOCAL:
-            print(f'> Aucun item trouvé : {target_item}. Assurez-vous d\'utiliser le nom anglais.')
+            print(f'> No item found : {target_item}. Please ensure you type the english name.')
         else:
-            await context.send(f'> Aucun item trouvé : {target_item}. Assurez-vous d\'utiliser le nom anglais.')
+            await context.send(f'> No item found : {target_item}. Please ensure you type the english name.')
         return
 
     # We print the results
