@@ -7,6 +7,9 @@ name = "pypi"
 discord = "*"
 python-dotenv = "*"
 requests = "*"
+pytest = "*"
+setuptools = "*"
+risibot-discord = {file = ".", editable = true}
 
 [dev-packages]
 

@@ -5,7 +5,6 @@ import asyncio
 import discord
 from discord.ext import commands
 
-import util
 import data_manager as dm
 
 load_dotenv()
